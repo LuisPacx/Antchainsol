@@ -3,11 +3,16 @@ pub const W: f32 = 1920.0;
 pub const H: f32 = 1080.0;
 pub const BG_COLOR: (u8, u8, u8) = (0, 0, 0);
 
+// Helius API Configuration
+pub const HELIUS_API_KEY: &str = "a8ffceb5-7b0b-4a61-b361-efebd35707f8";
+pub const MINT_ADDRESS: &str = "294NhANwc8ACsfcpvg8EcKpKjprt1vRjWkJJEHBbyfAo";
+pub const MAX_FETCH_PAGES: usize = 10;
+pub const MIN_HUMAN_BALANCE: f64 = 0.0;
+
 // 
 pub const SOLANA_WALLETS: [&str; 10] = [
     "Wallet1Base58Here1111111111111111111111111111",
     "Wallet2Base58Here1111111111111111111111111111",
-    // Add up to your desired number, replace with real addresses
     "Example3Solana111111111111111111111111111111",
     "Example4Solana111111111111111111111111111111",
     "Example5Solana111111111111111111111111111111",
