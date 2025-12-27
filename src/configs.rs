@@ -4,8 +4,8 @@ pub const H: f32 = 1080.0;
 pub const BG_COLOR: (u8, u8, u8) = (0, 0, 0);
 
 // Helius API Configuration
-pub const HELIUS_API_KEY: &str = "3e7dc193-19e0-4dba-9127-8a34312a9225";
-pub const MINT_ADDRESS: &str = "5e8mi1zQVDEYQwEbqNHczHuU7VfrCuYcp9RNhbCCpump";
+pub const HELIUS_API_KEY: &str = "HELIUS_API_KEY";
+pub const MINT_ADDRESS: &str = "MINT_ADDRESS_HERE";
 pub const MAX_FETCH_PAGES: usize = 2;
 pub const MIN_HUMAN_BALANCE: f64 = 0.0;
 pub const HOLDER_FETCH_INTERVAL: u64 = 5; // seconds
