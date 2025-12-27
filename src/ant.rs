@@ -14,7 +14,7 @@ use futures_lite::future;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::time::Duration;
 
@@ -28,6 +28,8 @@ pub enum AntTask {
 #[derive(Component)]
 pub struct Ant {
     pub wallet_address: String,
+    pub balance: f64,
+    pub level: u8,
 }
 
 #[derive(Component)]
@@ -48,7 +50,7 @@ struct AntScanRadius(f32);
 pub struct AntFollowCameraPos(pub Vec2);
 
 #[derive(Component)]
-struct FetchHoldersTask(Task<Vec<String>>);
+struct FetchHoldersTask(Task<HashMap<String, f64>>);
 
 #[derive(Deserialize)]
 struct HeliusTokenAccount {
@@ -58,6 +60,35 @@ struct HeliusTokenAccount {
     amount: u64,
     delegated_amount: u64,
     frozen: bool,
+}
+
+#[derive(Clone, Copy)]
+struct AntLevel {
+    level: u8,
+    min_tokens: f64,
+    max_tokens: f64,
+    scale_multiplier: f32,
+    label: &'static str,
+}
+
+const ANT_LEVELS: [AntLevel; 8] = [
+    AntLevel { level: 1, min_tokens: 0.0, max_tokens: 100_000.0, scale_multiplier: 1.0, label: "Worker" },
+    AntLevel { level: 2, min_tokens: 100_000.0, max_tokens: 500_000.0, scale_multiplier: 1.3, label: "Soldier" },
+    AntLevel { level: 3, min_tokens: 500_000.0, max_tokens: 1_000_000.0, scale_multiplier: 1.6, label: "Guard" },
+    AntLevel { level: 4, min_tokens: 1_000_000.0, max_tokens: 3_000_000.0, scale_multiplier: 2.0, label: "Elite" },
+    AntLevel { level: 5, min_tokens: 3_000_000.0, max_tokens: 6_000_000.0, scale_multiplier: 2.5, label: "Commander" },
+    AntLevel { level: 6, min_tokens: 6_000_000.0, max_tokens: 10_000_000.0, scale_multiplier: 3.0, label: "General" },
+    AntLevel { level: 7, min_tokens: 10_000_000.0, max_tokens: 15_000_000.0, scale_multiplier: 3.5, label: "Lord" },
+    AntLevel { level: 8, min_tokens: 15_000_000.0, max_tokens: f64::MAX, scale_multiplier: 4.5, label: "Queen" },
+];
+
+fn get_ant_level(balance: f64) -> AntLevel {
+    for level in ANT_LEVELS.iter().rev() {
+        if balance >= level.min_tokens {
+            return *level;
+        }
+    }
+    ANT_LEVELS[0]
 }
 
 impl Plugin for AntPlugin {
@@ -108,7 +139,7 @@ impl Plugin for AntPlugin {
     }
 }
 
-fn fetch_token_holders() -> Vec<String> {
+fn fetch_token_holders_with_balances() -> HashMap<String, f64> {
     let api_key = HELIUS_API_KEY;
     let mint = MINT_ADDRESS;
     let max_pages = MAX_FETCH_PAGES;
@@ -151,7 +182,7 @@ fn fetch_token_holders() -> Vec<String> {
     }
 
     // Fetch accounts
-    let mut all_owners: HashSet<String> = HashSet::new();
+    let mut holders: HashMap<String, f64> = HashMap::new();
     let mut cursor: Option<String> = None;
     let mut page = 0;
     while page < max_pages {
@@ -181,7 +212,12 @@ fn fetch_token_holders() -> Vec<String> {
                         };
                         for acc in token_accounts {
                             if acc.amount >= min_raw && !acc.frozen {
-                                all_owners.insert(acc.owner);
+                                let balance = if decimals > 0 {
+                                    acc.amount as f64 / 10f64.powf(decimals as f64)
+                                } else {
+                                    acc.amount as f64
+                                };
+                                holders.insert(acc.owner, balance);
                             }
                         }
                     }
@@ -193,52 +229,78 @@ fn fetch_token_holders() -> Vec<String> {
         }
     }
     
-    let holders: Vec<String> = all_owners.into_iter().collect();
-    println!("Fetched {} token holders", holders.len());
+    println!("Fetched {} token holders with balances", holders.len());
     holders
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     println!("Starting initial holder fetch...");
-    let owners = fetch_token_holders();
-    println!("Creating {} initial ants", owners.len());
+    let holders = fetch_token_holders_with_balances();
+    println!("Creating {} initial ants", holders.len());
     
-    for owner in owners {
-        spawn_ant(&mut commands, &asset_server, owner);
+    for (owner, balance) in holders {
+        spawn_ant(&mut commands, &asset_server, owner, balance);
     }
 }
 
-fn spawn_ant(commands: &mut Commands, asset_server: &Res<AssetServer>, owner: String) {
+fn spawn_ant(commands: &mut Commands, asset_server: &Res<AssetServer>, owner: String, balance: f64) {
+    let ant_level = get_ant_level(balance);
     let truncated_address = format!("{}...{}", &owner[..4], &owner[owner.len()-4..]);
+    let scale = ANT_SPRITE_SCALE * ant_level.scale_multiplier;
+    
+    // Color based on level - higher levels get more golden/special colors
+    let color = match ant_level.level {
+        1 => Color::rgb(1.0, 1.0, 1.0),      // White
+        2 => Color::rgb(1.2, 1.2, 0.8),      // Light yellow
+        3 => Color::rgb(1.3, 1.3, 0.6),      // Yellow
+        4 => Color::rgb(1.5, 1.2, 0.4),      // Gold
+        5 => Color::rgb(1.7, 1.0, 0.3),      // Orange-gold
+        6 => Color::rgb(1.8, 0.8, 0.2),      // Deep orange
+        7 => Color::rgb(2.0, 0.5, 0.5),      // Red-orange
+        8 => Color::rgb(2.5, 0.3, 0.8),      // Purple-pink (Queen)
+        _ => Color::rgb(1.0, 1.0, 1.0),
+    };
+    
+    let label_text = format!("{} - Lvl{} {}", 
+        truncated_address, 
+        ant_level.level,
+        ant_level.label
+    );
+    
+    println!("Spawning {} with {} tokens (Level {})", owner, balance, ant_level.level);
     
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load(SPRITE_ANT),
             sprite: Sprite {
-                color: Color::rgb(1.1, 1.1, 1.0),
+                color,
                 ..default()
             },
             transform: Transform::from_xyz(HOME_LOCATION.0, HOME_LOCATION.1, ANT_Z_INDEX)
-                .with_scale(Vec3::splat(ANT_SPRITE_SCALE)),
+                .with_scale(Vec3::splat(scale)),
             ..Default::default()
         },
-        Ant { wallet_address: owner },
+        Ant { 
+            wallet_address: owner,
+            balance,
+            level: ant_level.level,
+        },
         CurrentTask(AntTask::FindFood),
         Velocity(get_rand_unit_vec2()),
         Acceleration(Vec2::ZERO),
-        PhStrength(ANT_INITIAL_PH_STRENGTH),
+        PhStrength(ANT_INITIAL_PH_STRENGTH * ant_level.scale_multiplier),
     )).with_children(|parent| {
         parent.spawn((
             Text2dBundle {
                 text: Text::from_section(
-                    truncated_address,
+                    label_text,
                     TextStyle {
-                        font_size: 20.0,
+                        font_size: 10.0 + (ant_level.level as f32 * 1.5),
                         color: Color::rgb(1.0, 1.0, 1.0),
                         ..default()
                     },
                 ),
-                transform: Transform::from_xyz(0.0, 15.0, 1.0),
+                transform: Transform::from_xyz(0.0, 20.0, 1.0),
                 ..default()
             },
             AntLabel,
@@ -249,7 +311,7 @@ fn spawn_ant(commands: &mut Commands, asset_server: &Res<AssetServer>, owner: St
 fn start_fetch_holders(mut commands: Commands) {
     let thread_pool = AsyncComputeTaskPool::get();
     let task = thread_pool.spawn(async move {
-        fetch_token_holders()
+        fetch_token_holders_with_balances()
     });
     
     commands.spawn(FetchHoldersTask(task));
@@ -259,32 +321,80 @@ fn handle_fetch_holders_result(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut tasks: Query<(Entity, &mut FetchHoldersTask)>,
-    ant_query: Query<&Ant>,
+    mut ant_query: Query<(&Ant, &mut Transform, &mut Sprite, &Children)>,
+    mut text_query: Query<&mut Text, With<AntLabel>>,
 ) {
     for (entity, mut task) in tasks.iter_mut() {
-        if let Some(new_owners) = future::block_on(future::poll_once(&mut task.0)) {
+        if let Some(new_holders) = future::block_on(future::poll_once(&mut task.0)) {
             // Remove the task entity
             commands.entity(entity).despawn();
             
-            // Get current holders
-            let mut current: HashSet<String> = HashSet::new();
+            // Build current holder map
+            let mut current: HashMap<String, (f64, u8)> = HashMap::new();
             for ant in ant_query.iter() {
-                current.insert(ant.wallet_address.clone());
+                current.insert(ant.0.wallet_address.clone(), (ant.0.balance, ant.0.level));
             }
             
-            // Count new holders
             let mut new_count = 0;
+            let mut updated_count = 0;
             
-            // Spawn ants for new holders
-            for owner in new_owners {
-                if !current.contains(&owner) {
-                    spawn_ant(&mut commands, &asset_server, owner);
+            // Process all holders
+            for (owner, balance) in new_holders {
+                if let Some((old_balance, old_level)) = current.get(&owner) {
+                    // Existing holder - check if balance/level changed
+                    let new_level = get_ant_level(balance);
+                    if new_level.level != *old_level || (balance - old_balance).abs() > 0.01 {
+                        // Find and update the ant
+                        for (ant, mut transform, mut sprite, children) in ant_query.iter_mut() {
+                            if ant.wallet_address == owner {
+                                let scale = ANT_SPRITE_SCALE * new_level.scale_multiplier;
+                                transform.scale = Vec3::splat(scale);
+                                
+                                // Update color
+                                sprite.color = match new_level.level {
+                                    1 => Color::rgb(1.0, 1.0, 1.0),
+                                    2 => Color::rgb(1.2, 1.2, 0.8),
+                                    3 => Color::rgb(1.3, 1.3, 0.6),
+                                    4 => Color::rgb(1.5, 1.2, 0.4),
+                                    5 => Color::rgb(1.7, 1.0, 0.3),
+                                    6 => Color::rgb(1.8, 0.8, 0.2),
+                                    7 => Color::rgb(2.0, 0.5, 0.5),
+                                    8 => Color::rgb(2.5, 0.3, 0.8),
+                                    _ => Color::rgb(1.0, 1.0, 1.0),
+                                };
+                                
+                                // Update label
+                                for &child in children.iter() {
+                                    if let Ok(mut text) = text_query.get_mut(child) {
+                                        let truncated = format!("{}...{}", &owner[..4], &owner[owner.len()-4..]);
+                                        text.sections[0].value = format!("{} - Lvl{} {}", 
+                                            truncated,
+                                            new_level.level,
+                                            new_level.label
+                                        );
+                                        text.sections[0].style.font_size = 10.0 + (new_level.level as f32 * 1.5);
+                                    }
+                                }
+                                
+                                updated_count += 1;
+                                println!("Updated {} from Lvl{} to Lvl{} ({} tokens)", 
+                                    owner, old_level, new_level.level, balance);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // New holder
+                    spawn_ant(&mut commands, &asset_server, owner, balance);
                     new_count += 1;
                 }
             }
             
             if new_count > 0 {
-                println!("Added {} new ants (holders)", new_count);
+                println!("Added {} new ants", new_count);
+            }
+            if updated_count > 0 {
+                println!("Updated {} ants with new balances/levels", updated_count);
             }
         }
     }
@@ -432,14 +542,17 @@ fn check_home_food_collisions(
             &mut CurrentTask,
             &mut PhStrength,
             &mut Handle<Image>,
+            &Ant,
         ),
         With<Ant>,
     >,
     asset_server: Res<AssetServer>,
 ) {
-    for (transform, mut sprite, mut velocity, mut ant_task, mut ph_strength, mut image_handle) in
+    for (transform, mut sprite, mut velocity, mut ant_task, mut ph_strength, mut image_handle, ant) in
         ant_query.iter_mut()
     {
+        let ant_level = get_ant_level(ant.balance);
+        
         // Home collision
         let dist_to_home =
             transform
@@ -454,9 +567,21 @@ fn check_home_food_collisions(
                 }
             }
             ant_task.0 = AntTask::FindFood;
-            ph_strength.0 = ANT_INITIAL_PH_STRENGTH;
+            ph_strength.0 = ANT_INITIAL_PH_STRENGTH * ant_level.scale_multiplier;
             *image_handle = asset_server.load(SPRITE_ANT);
-            sprite.color = Color::rgb(1.0, 1.0, 2.5);
+            
+            // Restore level-based color
+            sprite.color = match ant_level.level {
+                1 => Color::rgb(1.0, 1.0, 1.0),
+                2 => Color::rgb(1.2, 1.2, 0.8),
+                3 => Color::rgb(1.3, 1.3, 0.6),
+                4 => Color::rgb(1.5, 1.2, 0.4),
+                5 => Color::rgb(1.7, 1.0, 0.3),
+                6 => Color::rgb(1.8, 0.8, 0.2),
+                7 => Color::rgb(2.0, 0.5, 0.5),
+                8 => Color::rgb(2.5, 0.3, 0.8),
+                _ => Color::rgb(1.0, 1.0, 1.0),
+            };
         }
 
         // Food Collision
@@ -472,7 +597,7 @@ fn check_home_food_collisions(
                 AntTask::FindHome => {}
             }
             ant_task.0 = AntTask::FindHome;
-            ph_strength.0 = ANT_INITIAL_PH_STRENGTH;
+            ph_strength.0 = ANT_INITIAL_PH_STRENGTH * ant_level.scale_multiplier;
             *image_handle = asset_server.load(SPRITE_ANT_WITH_FOOD);
             sprite.color = Color::rgb(1.0, 2.0, 1.0);
         }
