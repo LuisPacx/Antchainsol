@@ -262,9 +262,8 @@ fn spawn_ant(commands: &mut Commands, asset_server: &Res<AssetServer>, owner: St
         _ => Color::rgb(1.0, 1.0, 1.0),
     };
     
-    let label_text = format!("{} - Lvl{} {}", 
+    let label_text = format!("{} - {}", 
         truncated_address, 
-        ant_level.level,
         ant_level.label
     );
     
@@ -368,9 +367,8 @@ fn handle_fetch_holders_result(
                                 for &child in children.iter() {
                                     if let Ok(mut text) = text_query.get_mut(child) {
                                         let truncated = format!("{}...{}", &owner[..4], &owner[owner.len()-4..]);
-                                        text.sections[0].value = format!("{} - Lvl{} {}", 
+                                        text.sections[0].value = format!("{} - {}", 
                                             truncated,
-                                            new_level.level,
                                             new_level.label
                                         );
                                         text.sections[0].style.font_size = 10.0 + (new_level.level as f32 * 1.5);

@@ -5,13 +5,13 @@ pub const BG_COLOR: (u8, u8, u8) = (0, 0, 0);
 
 // Helius API Configuration
 pub const HELIUS_API_KEY: &str = "3e7dc193-19e0-4dba-9127-8a34312a9225";
-pub const MINT_ADDRESS: &str = "AbeDBXvqGnmcvX8NtQg5qgREFTw7HynkCc4u97xcpump";
-pub const MAX_FETCH_PAGES: usize = 5;
+pub const MINT_ADDRESS: &str = "So11111111111111111111111111111111111111112";
+pub const MAX_FETCH_PAGES: usize = 100;
 pub const MIN_HUMAN_BALANCE: f64 = 0.0;
-pub const HOLDER_FETCH_INTERVAL: u64 = 5; // seconds
+pub const HOLDER_FETCH_INTERVAL: u64 = 320; // seconds
 
 // Ants
-pub const NUM_ANTS: u32 = 5000;
+pub const NUM_ANTS: u32 = 20_000;
 pub const ANT_SPEED: f32 = 3.5;
 pub const ANT_DIRECTION_RANDOMNESS_DEG: f32 = 200.0;
 pub const ANT_DIRECTION_UPDATE_INTERVAL: f32 = 1.0;
