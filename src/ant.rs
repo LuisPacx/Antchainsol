@@ -71,15 +71,16 @@ struct AntLevel {
     label: &'static str,
 }
 
-const ANT_LEVELS: [AntLevel; 8] = [
-    AntLevel { level: 1, min_tokens: 0.0, max_tokens: 100_000.0, scale_multiplier: 1.0, label: "Worker" },
-    AntLevel { level: 2, min_tokens: 100_000.0, max_tokens: 500_000.0, scale_multiplier: 1.3, label: "Soldier" },
-    AntLevel { level: 3, min_tokens: 500_000.0, max_tokens: 1_000_000.0, scale_multiplier: 1.6, label: "Guard" },
-    AntLevel { level: 4, min_tokens: 1_000_000.0, max_tokens: 3_000_000.0, scale_multiplier: 2.0, label: "Elite" },
-    AntLevel { level: 5, min_tokens: 3_000_000.0, max_tokens: 6_000_000.0, scale_multiplier: 2.5, label: "Commander" },
-    AntLevel { level: 6, min_tokens: 6_000_000.0, max_tokens: 10_000_000.0, scale_multiplier: 3.0, label: "General" },
-    AntLevel { level: 7, min_tokens: 10_000_000.0, max_tokens: 15_000_000.0, scale_multiplier: 3.5, label: "Lord" },
-    AntLevel { level: 8, min_tokens: 15_000_000.0, max_tokens: f64::MAX, scale_multiplier: 4.5, label: "Queen" },
+const ANT_LEVELS: [AntLevel; 9] = [
+    AntLevel { level: 1, min_tokens: 0.0,            max_tokens: 499_999.9,     scale_multiplier: 1.0,  label: "Shrimp"           },
+    AntLevel { level: 2, min_tokens: 500_000.0,      max_tokens: 999_999.9,     scale_multiplier: 1.3,  label: "Crab"             },
+    AntLevel { level: 3, min_tokens: 1_000_000.0,    max_tokens: 2_499_999.9,   scale_multiplier: 1.6,  label: "Octopus"          },
+    AntLevel { level: 4, min_tokens: 2_500_000.0,    max_tokens: 4_999_999.9,   scale_multiplier: 2.0,  label: "Fish"             },
+    AntLevel { level: 5, min_tokens: 5_000_000.0,    max_tokens: 9_999_999.9,   scale_multiplier: 2.5,  label: "Dolphin"          },
+    AntLevel { level: 6, min_tokens: 10_000_000.0,   max_tokens: 24_999_999.9,  scale_multiplier: 3.2,  label: "Shark"            },
+    AntLevel { level: 7, min_tokens: 25_000_000.0,   max_tokens: 49_999_999.9,  scale_multiplier: 5.0,  label: "Whale"            },
+    AntLevel { level: 8, min_tokens: 50_000_000.0,   max_tokens: 99_999_999.9,  scale_multiplier: 7.0,  label: "Humpback Whale"   },
+    AntLevel { level: 9, min_tokens: 100_000_000.0,  max_tokens: f64::MAX,      scale_multiplier: 12.0, label: "Queen"            },
 ];
 
 fn get_ant_level(balance: f64) -> AntLevel {

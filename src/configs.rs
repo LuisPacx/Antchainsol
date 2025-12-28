@@ -5,21 +5,21 @@ pub const BG_COLOR: (u8, u8, u8) = (0, 0, 0);
 
 // Helius API Configuration
 pub const HELIUS_API_KEY: &str = "3e7dc193-19e0-4dba-9127-8a34312a9225";
-pub const MINT_ADDRESS: &str = "DYj6YVZkHcytZBtTSFPnMi5NLNHueNvcmCdmYNTkpump";
+pub const MINT_ADDRESS: &str = "AbeDBXvqGnmcvX8NtQg5qgREFTw7HynkCc4u97xcpump";
 pub const MAX_FETCH_PAGES: usize = 5;
 pub const MIN_HUMAN_BALANCE: f64 = 0.0;
 pub const HOLDER_FETCH_INTERVAL: u64 = 5; // seconds
 
 // Ants
 pub const NUM_ANTS: u32 = 5000;
-pub const ANT_SPEED: f32 = 1.5;
-pub const ANT_DIRECTION_RANDOMNESS_DEG: f32 = 300.0;
-pub const ANT_DIRECTION_UPDATE_INTERVAL: f32 = 0.5;
+pub const ANT_SPEED: f32 = 3.5;
+pub const ANT_DIRECTION_RANDOMNESS_DEG: f32 = 200.0;
+pub const ANT_DIRECTION_UPDATE_INTERVAL: f32 = 1.0;
 pub const ANT_SPRITE_SCALE: f32 = 0.3;
 pub const ANT_Z_INDEX: f32 = 3.0;
 pub const ANT_INITIAL_PH_STRENGTH: f32 = 40.0;
 pub const ANT_PH_STRENGTH_DECAY_RATE: f32 = 0.7;
-pub const ANT_PH_STRENGTH_DECAY_INTERVAL: f32 = 0.5;
+pub const ANT_PH_STRENGTH_DECAY_INTERVAL: f32 = 1.0;
 pub const ANT_PH_DROP_INTERVAL: f32 = 0.7;
 pub const INITIAL_ANT_PH_SCAN_RADIUS: f32 = 15.0;
 pub const ANT_PH_SCAN_RADIUS_INCREMENT: f32 = 0.1;
